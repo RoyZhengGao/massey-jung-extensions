@@ -12,6 +12,8 @@ package test.nz.ac.massey.jung.contrib.algorithms.metrics;
 
 import static org.junit.Assert.*;
 import nz.ac.massey.jung.contrib.algorithms.metrics.Modularity;
+
+import org.apache.commons.collections15.Predicate;
 import org.apache.commons.collections15.Transformer;
 import org.junit.Test;
 import edu.uci.ics.jung.graph.Graph;
@@ -30,6 +32,21 @@ public class ModularityTest {
 			return s.substring(0,s.indexOf('.')); // component is first token in name
 		}
 	};
+	
+	Predicate<String> isInModule1 = new Predicate<String> () {
+		@Override
+		public boolean evaluate(String s) {
+			return s.substring(0,s.indexOf('.')).equals("c1");
+		}
+	};
+	
+	Predicate<String> isInModule2 = new Predicate<String> () {
+		@Override
+		public boolean evaluate(String s) {
+			return s.substring(0,s.indexOf('.')).equals("c2");
+		}
+	};
+	
 	/**
 	 * Two components connected by one edge.
 	 */
@@ -73,6 +90,40 @@ public class ModularityTest {
 		assertEquals(10.0/14.0,computed,DELTA);
 		
 	}
+	
+	
+	@Test
+	public void testUndirectedModular1() throws Exception {
+		
+		Graph<String,String> g = new UndirectedSparseGraph<String,String>();
+		// component 1
+		g.addVertex("c1.v1");
+		g.addVertex("c1.v2");
+		g.addVertex("c1.v3");
+		// component 2
+		g.addVertex("c2.v1");
+		g.addVertex("c2.v2");
+		g.addVertex("c2.v3");
+		// edges within component 1
+		g.addEdge("c1.e12","c1.v1","c1.v2");
+		g.addEdge("c1.e23","c1.v2","c1.v3");
+		g.addEdge("c1.e31","c1.v3","c1.v1");
+		// edges within component 2
+		g.addEdge("c2.e12","c2.v1","c2.v2");
+		g.addEdge("c2.e23","c2.v2","c2.v3");
+		g.addEdge("c2.e31","c2.v3","c2.v1");
+		// inter-component edges
+		g.addEdge("e12","c1.v1","c2.v1");
+		
+
+		double computedMonolithic = Modularity.computeModularity(g, componentMembership);
+		double computedModule1 = Modularity.computeModuleModularity(g, isInModule1);
+		double computedModule2 = Modularity.computeModuleModularity(g, isInModule2);
+		double combinedModularity = computedModule1 + computedModule2;
+		assertEquals(computedMonolithic,combinedModularity,DELTA);
+		
+	}
+
 
 	
 	@Test
@@ -113,6 +164,42 @@ public class ModularityTest {
 		
 		computed = Modularity.computeScaledModularity(g, componentMembership);
 		assertEquals(1.0,computed,DELTA);
+		
+	}
+	
+	
+	@Test
+	/**
+	 * Two disconnected components. Note that the modularity is not maximal (=1)
+	 * This is discussed in Newman: NEtworks on p. 224. Scaling is necessary. 
+	 * @throws Exception
+	 */
+	public void testUndirectedModular2() throws Exception {
+		
+		Graph<String,String> g = new UndirectedSparseGraph<String,String>();
+		// component 1
+		g.addVertex("c1.v1");
+		g.addVertex("c1.v2");
+		g.addVertex("c1.v3");
+		// component 2
+		g.addVertex("c2.v1");
+		g.addVertex("c2.v2");
+		g.addVertex("c2.v3");
+		// edges within component 1
+		g.addEdge("c1.e12","c1.v1","c1.v2");
+		g.addEdge("c1.e23","c1.v2","c1.v3");
+		g.addEdge("c1.e31","c1.v3","c1.v1");
+		// edges within component 2
+		g.addEdge("c2.e12","c2.v1","c2.v2");
+		g.addEdge("c2.e23","c2.v2","c2.v3");
+		g.addEdge("c2.e31","c2.v3","c2.v1");
+
+		
+		double computedMonolithic = Modularity.computeModularity(g, componentMembership);
+		double computedModule1 = Modularity.computeModuleModularity(g, isInModule1);
+		double computedModule2 = Modularity.computeModuleModularity(g, isInModule2);
+		double combinedModularity = computedModule1 + computedModule2;
+		assertEquals(computedMonolithic,combinedModularity,DELTA);
 		
 	}
 	
@@ -160,6 +247,42 @@ public class ModularityTest {
 		
 	}
 	
+	/**
+	 * Scenario with stronger (3) inter-component links.
+	 * @throws Exception
+	 */
+	@Test
+	public void testUndirectedModular3() throws Exception {
+		
+		Graph<String,String> g = new UndirectedSparseGraph<String,String>();
+		// component 1
+		g.addVertex("c1.v1");
+		g.addVertex("c1.v2");
+		g.addVertex("c1.v3");
+		// component 2
+		g.addVertex("c2.v1");
+		g.addVertex("c2.v2");
+		g.addVertex("c2.v3");
+		// edges within component 1
+		g.addEdge("c1.e12","c1.v1","c1.v2");
+		g.addEdge("c1.e23","c1.v2","c1.v3");
+		g.addEdge("c1.e31","c1.v3","c1.v1");
+		// edges within component 2
+		g.addEdge("c2.e12","c2.v1","c2.v2");
+		g.addEdge("c2.e23","c2.v2","c2.v3");
+		g.addEdge("c2.e31","c2.v3","c2.v1");
+		// inter-component edges
+		g.addEdge("e12-1","c1.v1","c2.v1");
+		g.addEdge("e12-2","c1.v2","c2.v2");
+		g.addEdge("e12-3","c1.v3","c2.v3");
+		
+		double computedMonolithic = Modularity.computeModularity(g, componentMembership);
+		double computedModule1 = Modularity.computeModuleModularity(g, isInModule1);
+		double computedModule2 = Modularity.computeModuleModularity(g, isInModule2);
+		double combinedModularity = computedModule1 + computedModule2;
+		assertEquals(computedMonolithic,combinedModularity,DELTA);
+	
+	}
 	
 	/**
 	 * Scenario with no intra-component links.
@@ -194,6 +317,35 @@ public class ModularityTest {
 		
 		computed = Modularity.computeScaledModularity(g, componentMembership);
 		assertEquals(-1.0,computed,DELTA);
+	}
+	
+	/**
+	 * Scenario with no intra-component links.
+	 * @throws Exception
+	 */
+	@Test
+	public void testUndirectedModular4() throws Exception {
+		
+		Graph<String,String> g = new UndirectedSparseGraph<String,String>();
+		// component 1
+		g.addVertex("c1.v1");
+		g.addVertex("c1.v2");
+		g.addVertex("c1.v3");
+		// component 2
+		g.addVertex("c2.v1");
+		g.addVertex("c2.v2");
+		g.addVertex("c2.v3");
+
+		// inter-component edges
+		g.addEdge("e12-1","c1.v1","c2.v1");
+		g.addEdge("e12-2","c1.v2","c2.v2");
+		g.addEdge("e12-3","c1.v3","c2.v3");
+		
+		double computedMonolithic = Modularity.computeModularity(g, componentMembership);
+		double computedModule1 = Modularity.computeModuleModularity(g, isInModule1);
+		double computedModule2 = Modularity.computeModuleModularity(g, isInModule2);
+		double combinedModularity = computedModule1 + computedModule2;
+		assertEquals(computedMonolithic,combinedModularity,DELTA);
 	}
 	
 }
