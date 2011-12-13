@@ -22,12 +22,15 @@ import edu.uci.ics.jung.graph.Graph;
  */
 public class Modularity {
 	/**
-	 * Compute the modularity of a graph. Modulare membership is defined by a function. 
+	 * Compute the modularity of a graph. Module membership is defined by a function. 
 	 * @param g
 	 * @param moduleMembership
 	 * @return
 	 */
 	public static <V,E,M> double computeModularity (Graph<V,E> g,Transformer<V,M> moduleMembership) {
+		//  simple check whether there are components (O(N))
+		Set<M> components = getComponents (g,moduleMembership);
+		if (components.size()==1) return 0;
 		
 		double sum = 0;
 		double m2 = (double)(2*g.getEdgeCount());
@@ -73,6 +76,7 @@ public class Modularity {
 		}
 		return sum/m2;
 	}
+	
 
 	/**
 	 * Compute the max modularity of a graph.
@@ -100,6 +104,7 @@ public class Modularity {
 		}
 		return sum/m2;
 	}
+	
 	/**
 	 * Compute modularity scaled to [-1,1].
 	 * @param g
@@ -108,8 +113,33 @@ public class Modularity {
 	 */
 	public static <V,E,M> double computeScaledModularity(Graph<V,E> g,Transformer<V,M> moduleMembership) {
 		double modularity = computeModularity(g,moduleMembership);
+		return computeScaledModularity(g,moduleMembership,modularity);
+	}
+	
+	/**
+	 * Compute modularity scaled to [-1,1]. Useful method if modularity has already been computed.
+	 * @param g
+	 * @param moduleMembership
+	 * @return
+	 */
+	public static <V,E,M> double computeScaledModularity(Graph<V,E> g,Transformer<V,M> moduleMembership,double modularity) {
+		if (modularity==0.0) return 0;
 		double maxModularity = computeMaxModularity(g,moduleMembership);
 		return modularity/maxModularity;
 	}
 
+	
+	/**
+	 * Get the components in the graph.
+	 * @param g
+	 * @param moduleMembership
+	 * @return a set of components.
+	 */
+	public static <V,E,M> Set<M> getComponents (Graph<V,E> g,Transformer<V,M> moduleMembership) {
+		Set<M> components = new HashSet<M>();
+		for (V v:g.getVertices()) {
+			components.add(moduleMembership.transform(v));
+		}
+		return components;
+	}
 }
